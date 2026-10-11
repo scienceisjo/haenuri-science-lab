@@ -97,7 +97,7 @@ button{border-radius:10px;border-color:#dbe3ed;color:#263e5d}.primary,.plus{back
 </head>
 <body>
 
-<header><div class="brand"><span class="brand-mark"><img src="images/haenuri-logo.png" alt="해누리중학교 로고" width="688" height="687"></span><span>해누리 과학연구소<small>승재쌤과 해누리의 과학 실험실</small></span></div><div class="header-actions"><span class="badge" id="connection">가상 수업 · 이 기기에 저장</span><button class="small quiet teacher-only" id="connectBtn">기기 연결</button><button class="small" id="viewBtn">전자칠판 보기</button><button class="small hidden" id="fullscreenBtn">전체 화면</button></div></header>
+<header><div class="brand"><span class="brand-mark"><img src="images/haenuri-logo.png" alt="해누리중학교 로고" width="688" height="687"></span><span>해누리 과학연구소<small>승재쌤과 해누리의 과학 실험실</small></span></div><div class="header-actions"><span class="badge" id="connection">가상 수업 · 이 기기에 저장</span><button class="small quiet teacher-only" id="connectBtn">기기 연결</button><button class="small" id="viewBtn">전자칠판 보기</button><button class="small hidden" id="soundBtn" type="button" aria-pressed="false">🔈 칭찬 소리 켜기</button><button class="small hidden" id="fullscreenBtn">전체 화면</button></div></header>
 <main>
 <div class="intro"><div><div class="eyebrow">HAENURI SCIENCE LAB</div><h1 id="sessionTitle">2학년 3반 · 오늘의 과학 실험</h1><p id="sessionSubtitle">함께 실험하고, 스스로 발견하는 시간.</p></div><div class="timer"><div><span class="muted" style="font-size:.8rem" id="phaseLabel">실험 시간</span><div class="clock" id="clock">20:00</div></div><button class="primary teacher-only" id="timerToggle">시작</button><button class="small quiet teacher-only" id="timerSettings">설정</button></div></div>
 <figure class="science-quote" aria-label="과학자의 한마디"><span class="quote-label">과학자의 한마디</span><blockquote>“내가 만들어 낼 수 없는 것은<br class="quote-break"> 이해하지 못한 것이다.”</blockquote><figcaption>리처드 파인만 · 물리학자<a href="https://magazine.caltech.edu/post/biology-through-the-eyes-of-a-physicist" target="_blank" rel="noopener noreferrer" aria-label="파인만 명언 원문과 Caltech 출처, 새 창">번역 · 원문 출처 ↗</a></figcaption></figure>
@@ -106,7 +106,7 @@ button{border-radius:10px;border-color:#dbe3ed;color:#263e5d}.primary,.plus{back
 <div id="boardResult" class="board-result hidden" aria-live="polite"></div>
 <div class="workspace"><section><div class="toolbar"><div><h2 style="margin:0">모둠 연구실 <span class="muted" id="groupCount" style="font-size:.9rem">6모둠</span></h2></div><div class="row teacher-only"><button class="small quiet" id="undoBtn">↶ 되돌리기</button><button class="small" id="setupBtn">수업 준비</button><button class="small quiet" id="resetBtn">수업 리셋</button></div></div><div class="grid" id="groups"></div></section>
 <aside class="teacher-only"><section class="side-panel"><div class="eyebrow" style="margin-bottom:9px">수업 도구</div><h2>오늘의 탐구 도구</h2><button id="rolesBtn">🎡 역할 룰렛</button><button id="drawBtn">🙋 발표자 뽑기</button><button id="exportBtn">📒 수업 기록 저장</button></section><section class="side-panel"><h2>연구 관찰 일지</h2><ul class="log" id="eventLog"></ul></section><p class="help">안전·기구 문제나 매뉴얼에 없는 질문은 도움 요청 횟수에 포함하지 않습니다.</p></aside></div>
-</main><footer id="app-credit">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br>최종 업데이트: 2026-10-07</footer>
+</main><footer id="app-credit">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br>최종 업데이트: 2026-10-11</footer>
 <dialog id="modal"><div class="dialog-head"><h2 id="modalTitle"></h2><button class="small quiet" id="closeModal" aria-label="닫기">✕</button></div><div id="modalBody"></div></dialog><div class="toast hidden" id="toast" role="status"></div>
 <div id="growthOverlay" class="growth-overlay hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 <script>
@@ -181,11 +181,69 @@ function toast(message){$('#toast').textContent=message;$('#toast').classList.re
 function openModal(title,html){$('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;if(!$('#modal').open)$('#modal').showModal()}
 function closeModal(){if(modalBusy)return;$('#modal').close()}
 function status(){const message=mode==='cloud'?(queue.length?`전송 대기 ${queue.length}건 · 연결되면 저장`:online?'연결됨 · 2초마다 갱신':'연결 끊김 · 마지막 수신 화면'):'가상 수업 · 이 기기에 저장';$('#connection').textContent=message;$('#demoNotice').textContent=mode==='cloud'?(queue.length?'아직 전송되지 않은 기록이 있습니다. 저장될 때까지 이 기기의 브라우저 데이터를 지우지 마세요.':'휴대폰과 전자칠판에서 같은 교사 계정과 수업을 선택하세요. 기록은 약 2초 간격으로 반영됩니다.'):'가상 모둠으로 체험 중입니다. 다른 기기와는 연결되지 않습니다. 실제 수업은 ‘기기 연결’에서 시작하세요.';$('#connectBtn').textContent=mode==='cloud'?'수업 연결 관리':'기기 연결'}
+// Sound stays on this display; it never becomes part of the shared lesson state.
+let praiseAudio=null,praiseSoundEnabled=false,praiseSoundBusy=false;
+const praiseVoices=new Set();
+function updateSoundButton(){
+ const btn=$('#soundBtn'),ready=praiseSoundEnabled&&praiseAudio?.state==='running';
+ btn.classList.toggle('hidden',!board);
+ btn.textContent=ready?'🔊 칭찬 소리 켜짐':praiseSoundEnabled?'🔈 소리 다시 켜기':'🔈 칭찬 소리 켜기';
+ btn.setAttribute?.('aria-pressed',String(ready));
+ btn.title=ready?'누르면 칭찬 소리를 끕니다':'전자칠판에서 한 번 눌러 뾰로롱 소리를 켜세요';
+ btn.disabled=praiseSoundBusy;
+}
+function stopPraiseChime(){
+ for(const voice of praiseVoices){try{voice.osc.stop()}catch{}try{voice.osc.disconnect();voice.gain.disconnect()}catch{}}
+ praiseVoices.clear();
+}
+function playPraiseChime(){
+ if(!board||!praiseSoundEnabled||praiseAudio?.state!=='running')return;
+ try{
+  stopPraiseChime();
+  const start=praiseAudio.currentTime+.02;
+  // A rising, softly decaying bell arpeggio, with a quiet octave shimmer.
+  [523.25,659.25,783.99,1046.50,1567.98].forEach((hz,i)=>{
+   [1,2].forEach((harmonic,j)=>{
+    const osc=praiseAudio.createOscillator(),gain=praiseAudio.createGain();
+    const at=start+i*.115,duration=i===4?.85:.5,volume=(j?.016:.075)*(i===4?.8:1);
+    osc.type='sine';osc.frequency.setValueAtTime(hz*harmonic*.985,at);
+    osc.frequency.exponentialRampToValueAtTime(hz*harmonic,at+.045);
+    gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(volume,at+.012);
+    gain.gain.exponentialRampToValueAtTime(.0001,at+duration);
+    osc.connect(gain);gain.connect(praiseAudio.destination);
+    const voice={osc,gain};praiseVoices.add(voice);
+    osc.onended=()=>{osc.disconnect();gain.disconnect();praiseVoices.delete(voice)};
+    osc.start(at);osc.stop(at+duration+.02);
+   });
+  });
+ }catch{stopPraiseChime();praiseSoundEnabled=false;updateSoundButton()}
+}
+async function togglePraiseSound(){
+ if(!board||praiseSoundBusy)return;
+ if(praiseSoundEnabled&&praiseAudio?.state==='running'){
+  praiseSoundEnabled=false;stopPraiseChime();updateSoundButton();return;
+ }
+ const Audio=window.AudioContext||window.webkitAudioContext;
+ if(!Audio){toast('이 브라우저에서는 효과음을 지원하지 않아요. Chrome이나 Edge에서 열어주세요.');return}
+ praiseSoundBusy=true;updateSoundButton();
+ try{
+  if(!praiseAudio||praiseAudio.state==='closed'){
+   praiseAudio=new Audio();praiseAudio.onstatechange=updateSoundButton;
+  }
+  await praiseAudio.resume();
+  if(praiseAudio.state!=='running')throw Error('Audio is not running');
+  praiseSoundEnabled=true;
+  if(board){playPraiseChime();toast('칭찬 소리를 켰어요. 이제 칭찬할 때 뾰로롱!')}
+ }catch{praiseSoundEnabled=false;toast('소리를 켜지 못했어요. 소리 켜기를 다시 눌러주세요.')}
+ finally{praiseSoundBusy=false;updateSoundButton()}
+}
+
 let feedbackBefore=null,feedbackWasBoard=false,feedbackQueue=[],feedbackTimer=null;
-function clearBoardFeedback(){clearTimeout(feedbackTimer);feedbackTimer=null;feedbackQueue=[];const overlay=$('#growthOverlay');overlay.classList.add('hidden');overlay.innerHTML='';document.querySelectorAll?.('.is-celebrating').forEach(card=>card.classList.remove('is-celebrating'))}
+function clearBoardFeedback(){stopPraiseChime();clearTimeout(feedbackTimer);feedbackTimer=null;feedbackQueue=[];const overlay=$('#growthOverlay');overlay.classList.add('hidden');overlay.innerHTML='';document.querySelectorAll?.('.is-celebrating').forEach(card=>card.classList.remove('is-celebrating'))}
 function playBoardFeedback(){
  if(feedbackTimer||!feedbackQueue.length||!board)return;
  const effect=feedbackQueue.shift(),praise=effect.kind==='praise',upgrade=praise&&effect.score>effect.from;
+ if(praise)playPraiseChime();
  const title=upgrade?'연구소 업그레이드!':praise?'멋진 탐구를 칭찬해요!':effect.kind==='help'?'함께 해결해요':'집중력을 다시 모아요';
  const subtitle=praise?(upgrade?levels[effect.score]+'로 성장했어요':'최고 단계에서도 칭찬은 계속 쌓여요'):effect.kind==='help'?'선생님과 확인하고, 탐구를 이어가요':'우리 모둠의 탐구를 다시 시작해요';
  const particles=Array.from({length:30},(_,i)=>`<i style="--angle:${i*12}deg;--distance:${220+(i%5)*38}px;--delay:${(i%6)*.08}s;--particle:${['#65dcff','#efc363','#ffffff'][i%3]}"></i>`).join('');
@@ -202,7 +260,7 @@ function observeBoardFeedback(){
  feedbackQueue.push(...effects);feedbackQueue=feedbackQueue.slice(-8);playBoardFeedback();
 }
 
-function render(){state=normalizeLesson(state);const layout=boardGridLayout(state.groups.length);$('#groups').style.setProperty?.('--board-cols',layout.columns);$('#groups').style.setProperty?.('--board-rows',layout.rows);document.body.classList.toggle('board',board);$('#viewBtn').textContent=board?'교사 화면':'전자칠판 보기';$('#fullscreenBtn').classList.toggle('hidden',!board);$('#sessionTitle').textContent=state.title;$('#phaseLabel').textContent=state.phase;$('#groupCount').textContent=state.groups.length+'모둠';$('#undoBtn').disabled=!state.history.length;$('#groups').innerHTML=state.groups.map((g,i)=>`<article class="group" data-group="${g.id}"><div class="group-top"><div><div class="group-num">실험대 ${String(i+1).padStart(2,'0')}</div><h3>${esc(g.name)}</h3></div><span class="level-badge" aria-label="성장 ${g.score}단계"><small>LEVEL</small><strong>${g.score}</strong></span></div><div class="laboratory-stage"><img class="laboratory" src="${laboratoryAsset(g.score,i)}" alt="${esc(g.name)} 연구소 · ${levels[g.score]}" width="640" height="640" decoding="async" style="--growth:${.86+(g.score-1)*.023};--delay:-${i*.7}s"></div><div class="growth-caption">${levels[g.score]}</div><div class="level-bars" aria-label="성장 ${g.score}단계 / 7단계">${[1,2,3,4,5,6,7].map(n=>`<i class="${n<=g.score?'on':''}"></i>`).join('')}</div><div class="metrics teacher-only"><span>선생님 도움 <strong>${g.help}회</strong></span><button class="small quiet" data-act="members" aria-label="${esc(g.name)} 출석과 역할">출석 ${g.members.filter(m=>!m.absent).length}명</button></div><div class="actions teacher-only"><button data-act="help" aria-label="${esc(g.name)} 선생님에게 도움 받은 횟수 +1">선생님에게 도움 받은 횟수 +1</button><button class="plus" data-act="plus" aria-label="${esc(g.name)} 칭찬">칭찬 +1</button><button class="minus" data-act="minus" aria-label="${esc(g.name)} 태도 감점">태도 −1</button></div><button class="progress-button teacher-only" data-act="step">${steps[g.step]} · 다음 단계</button><div class="board-progress">${steps[g.step]}</div></article>`).join('')||'<div class="empty">수업 준비에서 모둠을 등록하세요.</div>';$('#eventLog').innerHTML=state.events.slice(-5).reverse().map(e=>`<li>${esc(e.label)}<time>${new Date(e.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'})}</time></li>`).join('')||'<li class="muted">첫 탐구 기록을 기다리고 있어요.</li>';const r=state.result;$('#boardResult').classList.toggle('hidden',!r);$('#boardResult').innerHTML=r?`<span>${esc(r.title)}</span>${r.lines.map(line=>`<strong class="${r.kind==='roles'?'assignment':''}">${esc(line)}</strong>`).join('')}<button class="small quiet teacher-only" id="clearResult" style="margin-top:12px">결과 닫기</button>`:'';if(r)$('#clearResult').onclick=()=>act('clearResult');tick();status();renderLessonExtras();observeBoardFeedback();}
+function render(){state=normalizeLesson(state);const layout=boardGridLayout(state.groups.length);$('#groups').style.setProperty?.('--board-cols',layout.columns);$('#groups').style.setProperty?.('--board-rows',layout.rows);document.body.classList.toggle('board',board);$('#viewBtn').textContent=board?'교사 화면':'전자칠판 보기';$('#fullscreenBtn').classList.toggle('hidden',!board);updateSoundButton();$('#sessionTitle').textContent=state.title;$('#phaseLabel').textContent=state.phase;$('#groupCount').textContent=state.groups.length+'모둠';$('#undoBtn').disabled=!state.history.length;$('#groups').innerHTML=state.groups.map((g,i)=>`<article class="group" data-group="${g.id}"><div class="group-top"><div><div class="group-num">실험대 ${String(i+1).padStart(2,'0')}</div><h3>${esc(g.name)}</h3></div><span class="level-badge" aria-label="성장 ${g.score}단계"><small>LEVEL</small><strong>${g.score}</strong></span></div><div class="laboratory-stage"><img class="laboratory" src="${laboratoryAsset(g.score,i)}" alt="${esc(g.name)} 연구소 · ${levels[g.score]}" width="640" height="640" decoding="async" style="--growth:${.86+(g.score-1)*.023};--delay:-${i*.7}s"></div><div class="growth-caption">${levels[g.score]}</div><div class="level-bars" aria-label="성장 ${g.score}단계 / 7단계">${[1,2,3,4,5,6,7].map(n=>`<i class="${n<=g.score?'on':''}"></i>`).join('')}</div><div class="metrics teacher-only"><span>선생님 도움 <strong>${g.help}회</strong></span><button class="small quiet" data-act="members" aria-label="${esc(g.name)} 출석과 역할">출석 ${g.members.filter(m=>!m.absent).length}명</button></div><div class="actions teacher-only"><button data-act="help" aria-label="${esc(g.name)} 선생님에게 도움 받은 횟수 +1">선생님에게 도움 받은 횟수 +1</button><button class="plus" data-act="plus" aria-label="${esc(g.name)} 칭찬">칭찬 +1</button><button class="minus" data-act="minus" aria-label="${esc(g.name)} 태도 감점">태도 −1</button></div><button class="progress-button teacher-only" data-act="step">${steps[g.step]} · 다음 단계</button><div class="board-progress">${steps[g.step]}</div></article>`).join('')||'<div class="empty">수업 준비에서 모둠을 등록하세요.</div>';$('#eventLog').innerHTML=state.events.slice(-5).reverse().map(e=>`<li>${esc(e.label)}<time>${new Date(e.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'})}</time></li>`).join('')||'<li class="muted">첫 탐구 기록을 기다리고 있어요.</li>';const r=state.result;$('#boardResult').classList.toggle('hidden',!r);$('#boardResult').innerHTML=r?`<span>${esc(r.title)}</span>${r.lines.map(line=>`<strong class="${r.kind==='roles'?'assignment':''}">${esc(line)}</strong>`).join('')}<button class="small quiet teacher-only" id="clearResult" style="margin-top:12px">결과 닫기</button>`:'';if(r)$('#clearResult').onclick=()=>act('clearResult');tick();status();renderLessonExtras();observeBoardFeedback();}
 function tick(){const seconds=state.timer.endAt?Math.max(0,Math.ceil((state.timer.endAt-Date.now())/1000)):state.timer.seconds;$('#clock').textContent=`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;$('#timerToggle').textContent=state.timer.endAt?(seconds?'일시정지':'시간 종료'):'시작';$('#clock').style.color=seconds===0?'var(--orange)':'';}
 function act(type,payload={}){if(board)throw Error('교사 화면에서 조작하세요.');const op={id:uid(),type,payload,at:new Date().toISOString()},next=reduce(state,op);state=next;if(mode==='cloud')queue.push(op);saveCache();render();if(mode==='cloud')void flush();return op}
 async function ensureAuth(){if(!auth)throw Error('교사 로그인이 필요합니다.');if(auth.expires_at>Date.now()/1000+60)return;if(!refreshing)refreshing=(async()=>{const response=await fetch(config.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:config.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:auth.refresh_token}),signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error('로그인이 만료되었습니다. 다시 연결하세요.');auth={...await response.json(),project:config.url};sessionStorage.setItem(AUTH,JSON.stringify(auth))})().finally(()=>refreshing=null);await refreshing}
@@ -259,6 +317,7 @@ async function showCloudManager(){openModal('연결할 수업 선택',`<p class=
 async function createCloudSession(next){const rows=await api('inquiry_flame_sessions',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({id:next.id,owner_id:auth.user.id,state:next})});await joinSession(rows[0].id)}
 async function joinSession(id){const previous=cloudSessionId;cloudSessionId=id;let row;try{row=await fetchSession()}catch(e){cloudSessionId=previous;throw e}mode='cloud';remote=row;const cache=read(cacheKey(),null);queue=cache?.queue||[];rebase();config.session=id;localStorage.setItem(CONFIG,JSON.stringify(config));online=true;lastSync=Date.now();saveCache();render();if(queue.length)void flush()}
 $('#closeModal').onclick=closeModal;$('#modal').addEventListener('cancel',e=>{if(modalBusy)e.preventDefault()});$('#modal').addEventListener('close',()=>{$('#modalBody').onclick=null});
+$('#soundBtn').onclick=togglePraiseSound;
 $('#viewBtn').onclick=()=>{board=!board;const url=new URL(location.href);url.searchParams.set('view',board?'board':'teacher');history.replaceState(null,'',url);render()};$('#fullscreenBtn').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen().catch(()=>toast('이 브라우저에서는 전체 화면을 지원하지 않습니다.'))};
 $('#groups').onclick=e=>{const button=e.target.closest('[data-act]');if(!button||board)return;const id=button.closest('[data-group]').dataset.group,type=button.dataset.act;if(type==='members'){showMembers(id);return}const group=state.groups.find(g=>g.id===id);if(type==='plus'){showPraise(id);return}if(type==='minus'&&group.score===1){toast('첫 성장 단계예요. 함께 다시 시작해요.');return}act(type,{groupId:id});document.querySelector(`[data-group="${id}"]`)?.classList.add('flash');toast(type==='help'?'선생님에게 도움 받은 횟수를 기록했습니다.':type==='plus'?'칭찬으로 연구소가 한 단계 업그레이드됐어요!':type==='minus'?'태도 점수를 반영했습니다.':'실험 단계를 바꿨습니다.')};
 $('#timerToggle').onclick=()=>{if(state.timer.endAt){act('timer',{timer:{seconds:Math.max(0,Math.ceil((state.timer.endAt-Date.now())/1000)),endAt:null}})}else{if(!state.timer.seconds){showTimer();return}act('timer',{timer:{seconds:state.timer.seconds,endAt:Date.now()+state.timer.seconds*1000}})}};
